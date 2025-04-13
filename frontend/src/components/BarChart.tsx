@@ -1,12 +1,11 @@
 import React, { useEffect, useRef } from "react";
 import * as d3 from "d3";
-
-interface DataItem {
-  count: number;
-  acv: number;
-  closed_fiscal_quarter: string;
-  Cust_Type: string;
-}
+import {
+  DataItem,
+  processBarChartData,
+  createChartScales,
+  formatCurrency,
+} from "../utils/chartUtils";
 
 interface BarChartProps {
   data: DataItem[];
@@ -29,53 +28,16 @@ function BarChart({
     // Clear
     d3.select(svgRef.current).selectAll("*").remove();
 
-    // get quarters and customer types
-    const quarters = Array.from(
-      new Set(data.map((d) => d.closed_fiscal_quarter))
-    ).sort();
-    const customerTypes = Array.from(new Set(data.map((d) => d.Cust_Type)));
+    // Process data using the utility function
+    const processedData = processBarChartData(data);
 
-    // stacking
-    const groupedData: {
-      [quarter: string]: { [custType: string]: number } & { quarter: string };
-    } = {};
-
-    quarters.forEach((quarter) => {
-      groupedData[quarter] = { quarter };
-      customerTypes.forEach((custType) => {
-        groupedData[quarter][custType] = 0;
-      });
-    });
-
-    data.forEach((d) => {
-      groupedData[d.closed_fiscal_quarter][d.Cust_Type] += d.acv;
-    });
-
-    const stackedData = d3
-      .stack<any>()
-      .keys(customerTypes)
-      .value((d, key) => d[key] || 0)(Object.values(groupedData));
-
-    //  scales
-    const xScale = d3
-      .scaleBand()
-      .domain(quarters)
-      .range([margin.left, width - margin.right])
-      .padding(0.3);
-
-    const yMax =
-      d3.max(stackedData, (layer) => d3.max(layer, (d) => d[1])) || 0;
-
-    const yScale = d3
-      .scaleLinear()
-      .domain([0, yMax])
-      .range([height - margin.bottom, margin.top]);
-
-    // color scale
-    const colorScale = d3
-      .scaleOrdinal<string>()
-      .domain(customerTypes)
-      .range(["#4e79a7", "#f28e2c", "#e15759", "#76b7b2"]);
+    // Create scales
+    const { xScale, yScale, colorScale } = createChartScales(
+      processedData,
+      width,
+      height,
+      margin
+    );
 
     // SVG
     const svg = d3.select(svgRef.current);
@@ -84,7 +46,7 @@ function BarChart({
     svg
       .append("g")
       .selectAll("g")
-      .data(stackedData)
+      .data(processedData.stackedData)
       .enter()
       .append("g")
       .attr("fill", (d) => colorScale(d.key))
@@ -98,23 +60,81 @@ function BarChart({
       .attr("width", xScale.bandwidth())
       .on("mouseover", function (event, d) {
         const custType = d3.select(this.parentNode).datum().key;
-        const value = (d[1] - d[0]).toLocaleString();
+        const value = formatCurrency(d[1] - d[0]);
 
         d3.select(this).attr("stroke", "#000").attr("stroke-width", 1);
 
         tooltip
           .style("visibility", "visible")
-          .html(`<strong>${custType}</strong><br>$${value}`)
+          .html(`<strong>${custType}</strong><br>${value}`)
           .style("left", event.pageX + 10 + "px")
           .style("top", event.pageY - 30 + "px");
       })
       .on("mouseout", function () {
         d3.select(this).attr("stroke", "none");
-
         tooltip.style("visibility", "hidden");
       });
 
+    // Add totals at the top of each stacked bar group
+    const quarterTotals = {};
+    processedData.quarters.forEach((quarter) => {
+      quarterTotals[quarter] = 0;
+      processedData.customerTypes.forEach((custType) => {
+        quarterTotals[quarter] +=
+          processedData.groupedData[quarter][custType] || 0;
+      });
+    });
+
+    // After creating your bar rectangles but before adding axes
+    // Add labels inside each segment showing value and percentage
+
+    // First, gather the total ACV for percentage calculations
+    const totalACV = Object.values(quarterTotals).reduce(
+      (sum, value) => sum + value,
+      0
+    );
+
+    // Create text labels for each bar segment
+    svg
+      .append("g")
+      .selectAll("g")
+      .data(processedData.stackedData)
+      .enter()
+      .append("g")
+      .selectAll("text")
+      .data((d) => d)
+      .enter()
+      .append("text")
+      .attr("x", (d) => (xScale(d.data.quarter) || 0) + xScale.bandwidth() / 2)
+      .attr("y", (d) => {
+        const height = yScale(d[0]) - yScale(d[1]);
+        const y = yScale(d[1]) + height / 2;
+        return y;
+      })
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "middle")
+      .style("fill", "white")
+      .style("font-size", "11px")
+      .style("font-weight", "medium")
+      .style("text-shadow", "0px 0px 2px rgba(0,0,0,0.7)")
+      .style("pointer-events", "none")
+      .text((d) => {
+        const value = d[1] - d[0];
+        const height = yScale(d[0]) - yScale(d[1]);
+        const percent = ((value / totalACV) * 100).toFixed(1);
+
+        // Only show text if bar height is sufficient (more than 25px)
+        if (height > 25) {
+          return `${formatCurrency(value)}\n(${percent}%)`;
+        } else if (height > 15) {
+          return formatCurrency(value);
+        } else {
+          return "";
+        }
+      });
+
     // Add X axis
+
     svg
       .append("g")
       .attr("transform", `translate(0,${height - margin.bottom})`)
@@ -148,7 +168,7 @@ function BarChart({
         `translate(${width - margin.right - 100}, ${margin.top})`
       );
 
-    customerTypes.forEach((custType, i) => {
+    processedData.customerTypes.forEach((custType, i) => {
       const legendRow = legendGroup
         .append("g")
         .attr("transform", `translate(0, ${i * 20})`);
@@ -168,7 +188,7 @@ function BarChart({
         .text(custType);
     });
 
-    // Add tooltip
+    // tooltip
     const tooltip = d3
       .select("body")
       .append("div")
@@ -182,6 +202,20 @@ function BarChart({
       .style("padding", "5px")
       .style("font-size", "12px")
       .style("pointer-events", "none");
+
+    // Add total labels on top of each bar stack
+    svg
+      .append("g")
+      .selectAll("text")
+      .data(Object.entries(quarterTotals))
+      .enter()
+      .append("text")
+      .attr("x", (d) => (xScale(d[0]) || 0) + xScale.bandwidth() / 2)
+      .attr("y", (d) => yScale(d[1]) - 10) // Position above the stack
+      .attr("text-anchor", "middle")
+      .style("font-size", "12px")
+      .style("font-weight", "bold")
+      .text((d) => formatCurrency(d[1]));
 
     // Clean up function to remove tooltip when component unmounts
     return () => {

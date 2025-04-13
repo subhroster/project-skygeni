@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from "react";
 import * as d3 from "d3";
-
-interface DataItem {
-  count: number;
-  acv: number;
-  closed_fiscal_quarter: string;
-  Cust_Type: string;
-}
+import {
+  DataItem,
+  processDonutChartData,
+  createDonutGenerators,
+  formatCurrency,
+  formatPercent,
+} from "../utils/chartUtils";
 
 interface DonutProps {
   data: DataItem[];
@@ -26,65 +26,24 @@ function Donut({
   useEffect(() => {
     if (!data || data.length === 0 || !svgRef.current) return;
 
-    // Clear any previous chart data
+    // Clear any previous chart
     d3.select(svgRef.current).selectAll("*").remove();
 
-    // Processing data by customer_type
-    const customerTypeData: { [key: string]: number } = {};
-    data.forEach((d) => {
-      if (!customerTypeData[d.Cust_Type]) {
-        customerTypeData[d.Cust_Type] = 0;
-      }
-      customerTypeData[d.Cust_Type] += d.acv;
-    });
+    // Process data using utility function
+    const { pieData, totalACV } = processDonutChartData(data);
 
-    // Converting to array for d3
-    const pieData = Object.entries(customerTypeData).map(([name, value]) => ({
-      name,
-      value,
-    }));
+    // Get chart generators
+    const { radius, pie, arc, labelArc, colorScale } = createDonutGenerators(
+      width,
+      height,
+      margin
+    );
+
+    // Update color scale domain with actual data
+    colorScale.domain(pieData.map((d) => d.name));
 
     // Creating the SVG
     const svg = d3.select(svgRef.current);
-
-    // Calculating radius
-    const radius =
-      Math.min(
-        width - margin.left - margin.right,
-        height - margin.top - margin.bottom
-      ) / 2;
-
-    // color scale
-    const colorScale = d3
-      .scaleOrdinal<string>()
-      .domain(pieData.map((d) => d.name))
-      .range([
-        "#4e79a7",
-        "#f28e2c",
-        "#e15759",
-        "#76b7b2",
-        "#59a14f",
-        "#edc949",
-      ]);
-
-    // pie generator
-    const pie = d3
-      .pie<{ name: string; value: number }>()
-      .sort(null)
-      .value((d) => d.value);
-
-    // arc generator
-    //radius*.5 for dounut hole
-    const arc = d3
-      .arc<d3.PieArcDatum<{ name: string; value: number }>>()
-      .innerRadius(radius * 0.6)
-      .outerRadius(radius);
-
-    // label
-    const labelArc = d3
-      .arc<d3.PieArcDatum<{ name: string; value: number }>>()
-      .innerRadius(radius * 0.9)
-      .outerRadius(radius * 0.9);
 
     // pie chart grouping
     const g = svg
@@ -118,9 +77,7 @@ function Donut({
         tooltip
           .style("visibility", "visible")
           .html(
-            `<strong>${
-              d.data.name
-            }</strong><br>$${d.data.value.toLocaleString()}`
+            `<strong>${d.data.name}</strong><br>${formatCurrency(d.data.value)}`
           )
           .style("left", event.pageX + 10 + "px")
           .style("top", event.pageY - 30 + "px");
@@ -137,9 +94,6 @@ function Donut({
         tooltip.style("visibility", "hidden");
       });
 
-    // Calculate total ACV
-    const totalACV = pieData.reduce((sum, item) => sum + item.value, 0);
-
     // Add labels
     arcs
       .append("text")
@@ -154,9 +108,9 @@ function Donut({
         return percent > 5 ? "white" : "none"; // Only show text for slices large enough
       })
       .text((d) => {
-        // percentage calcualtion
+        // percentage calculation
         const percent = (d.data.value / totalACV) * 100;
-        return percent > 5 ? `${percent.toFixed(1)}%` : "";
+        return percent > 5 ? formatPercent(percent) : "";
       });
 
     // center text
@@ -171,7 +125,7 @@ function Donut({
       .attr("text-anchor", "middle")
       .attr("dy", "1em")
       .style("font-size", "16px")
-      .text(`$${totalACV.toLocaleString()}`);
+      .text(formatCurrency(totalACV));
 
     // Add legend
     const legend = svg
@@ -198,7 +152,7 @@ function Donut({
         .attr("y", 10)
         .attr("text-anchor", "start")
         .style("font-size", "12px")
-        .text(`${item.name} (${((item.value / totalACV) * 100).toFixed(1)}%)`);
+        .text(`${item.name} (${formatPercent((item.value / totalACV) * 100)})`);
     });
 
     // tooltip
