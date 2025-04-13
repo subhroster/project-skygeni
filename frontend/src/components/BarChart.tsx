@@ -108,12 +108,6 @@ function BarChart({
     // After creating your bar rectangles but before adding axes
     // Add labels inside each segment showing value and percentage
 
-    // First, gather the total ACV for percentage calculations
-    const totalACV = Object.values(quarterTotals).reduce(
-      (sum, value) => sum + value,
-      0
-    );
-
     // text labels for each bar segment
     svg
       .append("g")

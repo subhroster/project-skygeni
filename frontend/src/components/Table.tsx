@@ -34,10 +34,11 @@ interface TableProps {
 
 // Styled components
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
-  padding: "8px 16px",
+  padding: "6px 8px", // Reduce padding
   textAlign: "center",
   borderRight: `1px solid ${theme.palette.divider}`,
-  //   fontWeight: "100 !important",
+  fontSize: "0.8125rem", // Make font slightly smaller
+  whiteSpace: "nowrap", // Prevent text wrapping
   "&:last-child": {
     borderRight: "none",
   },
@@ -108,10 +109,11 @@ const CustomerSalesTable: React.FC<TableProps> = ({ data }) => {
     <TableContainer
       component={Paper}
       sx={{
-        overflowX: "auto",
         mb: 3,
         position: "relative",
-        pt: 5, // Add padding to the top to make room for the button
+        pt: 5, // Keep padding for the button
+        maxWidth: "100%", // Ensure it doesn't exceed container width
+        width: "auto", // Allow it to size naturally
       }}
     >
       {/* Position the copy button at the top right */}
@@ -120,15 +122,9 @@ const CustomerSalesTable: React.FC<TableProps> = ({ data }) => {
           onClick={handleCopyData}
           sx={{
             position: "absolute",
-            top: "0px",
+            top: "8px", // Move down slightly to separate from top edge
             right: "8px",
             zIndex: 1,
-            // backgroundColor: "rgba(255, 255, 255, 0.8)",
-            // boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
-            // "&:hover": {
-            //   backgroundColor: "rgba(255, 255, 255, 0.95)",
-            //   boxShadow: "0px 3px 6px rgba(0,0,0,0.15)",
-            // },
           }}
         >
           {copied ? (
@@ -146,7 +142,14 @@ const CustomerSalesTable: React.FC<TableProps> = ({ data }) => {
         message="Table data copied to clipboard"
       />
 
-      <Table size="small" sx={{ minWidth: 650, borderCollapse: "collapse" }}>
+      <Table
+        size="small"
+        sx={{
+          borderCollapse: "collapse",
+          tableLayout: "fixed", // Important: fixed layout helps control width
+          width: "auto", // Let the table size to content
+        }}
+      >
         <TableHead>
           <TableRow>
             {/* First row header */}

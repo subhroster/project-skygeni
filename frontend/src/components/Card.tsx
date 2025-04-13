@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Card as MuiCard,
-  CardContent,
-  CardHeader,
-  Typography,
-  Box,
-} from "@mui/material";
+import { Card as MuiCard, CardContent, CardHeader } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
 // Styled components

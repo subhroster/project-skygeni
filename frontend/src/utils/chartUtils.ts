@@ -177,7 +177,7 @@ export function formatPercent(value: number): string {
   return value.toFixed(1) + '%';
 }
 
-// Format currency in compact form with K/M/B suffixes
+// currency fromat in compact form with K/M/B suffixes
 export function formatCompactCurrency(value: number): string {
   if (value >= 1000000000) {
     return '$' + (value / 1000000000).toFixed(1) + 'B';

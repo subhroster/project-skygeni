@@ -85,8 +85,8 @@ const ChartPage: React.FC = () => {
       <CssBaseline />
       <Box sx={{ flexGrow: 1, width: "100%", pb: 4 }}>
         <Container maxWidth="xl" sx={{ py: 3 }}>
-          <Typography variant="h4" gutterBottom align="left" sx={{ mb: 3 }}>
-            Sales Performance Dashboard
+          <Typography variant="h4" gutterBottom align="center" sx={{ mb: 3 }}>
+            WON ACV Mix by cust Type
           </Typography>
 
           {loading ? (

@@ -16,7 +16,7 @@ interface ProcessedTableData {
 }
 
 /**
- * Process raw data items into structured table data
+ * raw data items into structured table data
  */
 export const processTableData = (data: DataItem[]): ProcessedTableData => {
   // Group by quarter and customer type
