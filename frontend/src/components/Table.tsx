@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Paper,
   Table,
@@ -9,7 +9,12 @@ import {
   TableRow,
   styled,
   Typography,
+  IconButton,
+  Tooltip,
+  Snackbar,
 } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CheckIcon from "@mui/icons-material/Check";
 import {
   processTableData,
   formatCurrency,
@@ -57,9 +62,60 @@ const TotalRowCell = styled(StyledTableCell)(({ theme }) => ({
 
 const CustomerSalesTable: React.FC<TableProps> = ({ data }) => {
   const tableData = useMemo(() => processTableData(data), [data]);
+  const [copied, setCopied] = useState(false);
+
+  // Function to handle copying table data
+  const handleCopyData = () => {
+    // Format data for clipboard
+    let copyText =
+      "Closed Fiscal Quarter,Customer Type,# of Opps,ACV,% of Total\n";
+
+    tableData.quarters.forEach((quarter) => {
+      // Existing customer row
+      copyText += `${quarter},Existing Customer,${
+        tableData.data[quarter]["Existing Customer"].count
+      },${formatCurrency(
+        tableData.data[quarter]["Existing Customer"].acv
+      )},${formatPercent(
+        tableData.data[quarter]["Existing Customer"].percentOfTotal
+      )}\n`;
+
+      // New customer row
+      copyText += `${quarter},New Customer,${
+        tableData.data[quarter]["New Customer"].count
+      },${formatCurrency(
+        tableData.data[quarter]["New Customer"].acv
+      )},${formatPercent(
+        tableData.data[quarter]["New Customer"].percentOfTotal
+      )}\n`;
+
+      // Total row
+      copyText += `${quarter},Total,${
+        tableData.data[quarter]["Total"].count
+      },${formatCurrency(tableData.data[quarter]["Total"].acv)},${formatPercent(
+        tableData.data[quarter]["Total"].percentOfTotal
+      )}\n`;
+    });
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(copyText).then(() => {
+      setCopied(true);
+    });
+  };
 
   return (
     <TableContainer component={Paper} sx={{ overflowX: "auto", mb: 3 }}>
+      <Tooltip title="Copy Table Data">
+        <IconButton onClick={handleCopyData}>
+          {copied ? <CheckIcon /> : <ContentCopyIcon />}
+        </IconButton>
+      </Tooltip>
+      <Snackbar
+        open={copied}
+        autoHideDuration={3000}
+        onClose={() => setCopied(false)}
+        message="Table data copied to clipboard"
+      />
       <Table size="small" sx={{ minWidth: 650, borderCollapse: "collapse" }}>
         <TableHead>
           <TableRow>
