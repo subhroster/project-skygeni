@@ -109,6 +109,7 @@ const CustomerSalesTable: React.FC<TableProps> = ({ data }) => {
                   sx={{
                     backgroundColor: "white",
                     color: "black",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   # of Opps
@@ -125,6 +126,7 @@ const CustomerSalesTable: React.FC<TableProps> = ({ data }) => {
                   sx={{
                     backgroundColor: "white",
                     color: "black",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   % of Total

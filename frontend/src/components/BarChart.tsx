@@ -5,6 +5,7 @@ import {
   processBarChartData,
   createChartScales,
   formatCurrency,
+  formatCompactCurrency, // Add this import
 } from "../utils/chartUtils";
 
 interface BarChartProps {
@@ -42,6 +43,25 @@ function BarChart({
     // SVG
     const svg = d3.select(svgRef.current);
 
+    // First, draw the grid - this needs to come BEFORE the bars
+    // Add gridlines for Y axis
+    svg
+      .append("g")
+      .attr("class", "grid")
+      .attr("transform", `translate(${margin.left},0)`)
+      .call(
+        d3
+          .axisLeft(yScale)
+          .tickSize(-width + margin.left + margin.right)
+          .tickFormat("") //
+      )
+      .style("stroke", "#33333")
+      .style("stroke-opacity", 0.1)
+      .style("shape-rendering", "crispEdges")
+      .selectAll("line");
+    //   .style("stroke-dasharray", "3,3");
+
+    // THEN draw the bars on top
     // groups for each customer type series
     svg
       .append("g")
@@ -94,7 +114,7 @@ function BarChart({
       0
     );
 
-    // Create text labels for each bar segment
+    // text labels for each bar segment
     svg
       .append("g")
       .selectAll("g")
@@ -102,7 +122,13 @@ function BarChart({
       .enter()
       .append("g")
       .selectAll("text")
-      .data((d) => d)
+      .data((d) => {
+        // For each data point, add the quarter's total for percentage calculation
+        return d.map((item) => ({
+          ...item,
+          quarterTotal: quarterTotals[item.data.quarter],
+        }));
+      })
       .enter()
       .append("text")
       .attr("x", (d) => (xScale(d.data.quarter) || 0) + xScale.bandwidth() / 2)
@@ -121,13 +147,14 @@ function BarChart({
       .text((d) => {
         const value = d[1] - d[0];
         const height = yScale(d[0]) - yScale(d[1]);
-        const percent = ((value / totalACV) * 100).toFixed(1);
+        // percentage based on quarter total
+        const percent = ((value / d.quarterTotal) * 100).toFixed(1);
 
-        // Only show text if bar height is sufficient (more than 25px)
+        // text based on bar height
         if (height > 25) {
-          return `${formatCurrency(value)}\n(${percent}%)`;
+          return `${formatCompactCurrency(value)}\n(${percent}%)`;
         } else if (height > 15) {
-          return formatCurrency(value);
+          return formatCompactCurrency(value);
         } else {
           return "";
         }
@@ -140,10 +167,9 @@ function BarChart({
       .attr("transform", `translate(0,${height - margin.bottom})`)
       .call(d3.axisBottom(xScale))
       .selectAll("text")
-      .style("text-anchor", "end")
-      .attr("dx", "-.8em")
-      .attr("dy", ".15em")
-      .attr("transform", "rotate(-45)");
+      .style("text-anchor", "middle") // Center the text
+      .attr("dy", ".71em") // Adjust vertical positioning
+      .attr("transform", "translate(0,5)"); // Add a little spacing from the axis
 
     // Add Y axis
     svg
@@ -211,11 +237,11 @@ function BarChart({
       .enter()
       .append("text")
       .attr("x", (d) => (xScale(d[0]) || 0) + xScale.bandwidth() / 2)
-      .attr("y", (d) => yScale(d[1]) - 10) // Position above the stack
+      .attr("y", (d) => yScale(d[1]) - 10)
       .attr("text-anchor", "middle")
       .style("font-size", "12px")
       .style("font-weight", "bold")
-      .text((d) => formatCurrency(d[1]));
+      .text((d) => formatCompactCurrency(d[1]));
 
     // Clean up function to remove tooltip when component unmounts
     return () => {

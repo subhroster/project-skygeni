@@ -94,23 +94,76 @@ function Donut({
         tooltip.style("visibility", "hidden");
       });
 
-    // Add labels
+    // Add outer labels with connecting lines
+    arcs.each(function (d) {
+      // Only add labels for segments that are big enough (more than 3%)
+      const percent = (d.data.value / totalACV) * 100;
+      if (percent < 3) return;
+
+      // Calculate position for label (outside the pie)
+      const pos = labelArc.centroid(d);
+      const midAngle = Math.atan2(pos[1], pos[0]);
+      const x = Math.cos(midAngle) * (radius * 1.2);
+      const y = Math.sin(midAngle) * (radius * 1.2);
+
+      // Create a group for each label
+      const labelGroup = d3.select(this).append("g");
+
+      // Add a line from the slice to the label
+      labelGroup
+        .append("line")
+        .attr("x1", arc.centroid(d)[0])
+        .attr("y1", arc.centroid(d)[1])
+        .attr("x2", x)
+        .attr("y2", y)
+        .style("stroke", "#333")
+        .style("stroke-width", 1);
+
+      // Add a dot at the end of the line
+      labelGroup
+        .append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", 2)
+        .style("fill", "#333");
+
+      // Add the percentage text
+      labelGroup
+        .append("text")
+        .attr("x", x)
+        .attr("y", y)
+        .attr("dx", x > 0 ? 8 : -8)
+        .attr("dy", "0.35em")
+        .style("font-size", "12px")
+        .style("text-anchor", x > 0 ? "start" : "end")
+        .text(`${formatPercent(percent)}`);
+
+      // Add the segment name below the percentage
+      labelGroup
+        .append("text")
+        .attr("x", x)
+        .attr("y", y)
+        .attr("dx", x > 0 ? 8 : -8)
+        .attr("dy", "1.5em")
+        .style("font-size", "10px")
+        .style("fill", "#666")
+        .style("text-anchor", x > 0 ? "start" : "end")
+        .text(d.data.name);
+    });
+
+    // You can still keep the simple percentage labels inside big slices for emphasis
     arcs
       .append("text")
-      .attr("transform", (d) => `translate(${labelArc.centroid(d)})`)
+      .attr("transform", (d) => `translate(${arc.centroid(d)})`)
       .attr("dy", ".35em")
       .attr("text-anchor", "middle")
-      .style("font-size", "12px")
+      .style("font-size", "14px")
       .style("font-weight", "bold")
-      .style("fill", (d) => {
-        // percentage
-        const percent = (d.data.value / totalACV) * 100;
-        return percent > 5 ? "white" : "none"; // Only show text for slices large enough
-      })
+      .style("fill", "white")
+      .style("pointer-events", "none")
       .text((d) => {
-        // percentage calculation
         const percent = (d.data.value / totalACV) * 100;
-        return percent > 5 ? formatPercent(percent) : "";
+        return percent > 10 ? formatPercent(percent) : "";
       });
 
     // center text
