@@ -13,8 +13,8 @@ import {
   Tooltip,
   Snackbar,
 } from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import CheckIcon from "@mui/icons-material/Check";
+import FileCopyOutlinedIcon from "@mui/icons-material/FileCopyOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import {
   processTableData,
   formatCurrency,
@@ -103,19 +103,49 @@ const CustomerSalesTable: React.FC<TableProps> = ({ data }) => {
     });
   };
 
+  // Update the TableContainer and the copy button styling
   return (
-    <TableContainer component={Paper} sx={{ overflowX: "auto", mb: 3 }}>
+    <TableContainer
+      component={Paper}
+      sx={{
+        overflowX: "auto",
+        mb: 3,
+        position: "relative",
+        pt: 5, // Add padding to the top to make room for the button
+      }}
+    >
+      {/* Position the copy button at the top right */}
       <Tooltip title="Copy Table Data">
-        <IconButton onClick={handleCopyData}>
-          {copied ? <CheckIcon /> : <ContentCopyIcon />}
+        <IconButton
+          onClick={handleCopyData}
+          sx={{
+            position: "absolute",
+            top: "0px",
+            right: "8px",
+            zIndex: 1,
+            // backgroundColor: "rgba(255, 255, 255, 0.8)",
+            // boxShadow: "0px 2px 4px rgba(0,0,0,0.1)",
+            // "&:hover": {
+            //   backgroundColor: "rgba(255, 255, 255, 0.95)",
+            //   boxShadow: "0px 3px 6px rgba(0,0,0,0.15)",
+            // },
+          }}
+        >
+          {copied ? (
+            <CheckCircleOutlineIcon color="success" fontSize="small" />
+          ) : (
+            <FileCopyOutlinedIcon fontSize="small" sx={{ color: "#666" }} />
+          )}
         </IconButton>
       </Tooltip>
+
       <Snackbar
         open={copied}
         autoHideDuration={3000}
         onClose={() => setCopied(false)}
         message="Table data copied to clipboard"
       />
+
       <Table size="small" sx={{ minWidth: 650, borderCollapse: "collapse" }}>
         <TableHead>
           <TableRow>
